@@ -1,0 +1,35 @@
+# Cortex on Fly.io — WSB / stocks / options / crypto ticker monitor.
+# Single small VM running Flask + APScheduler. SQLite on a persistent volume.
+
+app = "cortex-dashboard"          # change before `fly launch` if name is taken
+primary_region = "sjc"            # San Jose — closest to Ray; fly regions: fly.io/docs/reference/regions
+
+[build]
+
+[env]
+  PORT = "8080"
+  CORTEX_DATA_DIR = "/data"
+
+[[mounts]]
+  source = "cortex_data"          # the Fly volume name
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Keep the machine running so APScheduler's 30-min fetch keeps firing
+  # even when no one's looking at the dashboard.
+  auto_stop_machines = "off"
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"                # yfinance + sqlite fit in 256, give headroom
+
+# Periodic healthcheck so Fly knows the app is up.
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "20s"
+  method = "GET"
+  path = "/api/health"
