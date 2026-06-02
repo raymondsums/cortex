@@ -43,6 +43,7 @@ DB_PATH = _DATA_DIR / "cortex.db"
 APEWISDOM_BASE_FMT = "https://apewisdom.io/api/v1.0/filter/{source}"
 FETCH_INTERVAL_MIN = 30          # ApeWisdom refreshes every ~30 min
 FETCH_PAGES = 3                  # 50 tickers per page → top 150
+MENTION_FLOOR = 3                # ignore tickers below this many mentions (long-tail noise)
 HTTP_TIMEOUT_S = 15
 USER_AGENT = os.environ.get("USER_AGENT", "hivemind/0.1 (personal use)")
 
@@ -196,6 +197,10 @@ def fetch_snapshot(source: str = FETCH_DEFAULT) -> dict:
                 print(f"!! [{source}] page {page} failed: {e}", file=sys.stderr)
                 break
             for r in data.get("results", []):
+                # Skip the low-signal long tail — tickers below the mention
+                # floor are mostly 1–2 mention noise and only pad the data.
+                if int(r.get("mentions") or 0) < MENTION_FLOOR:
+                    continue
                 try:
                     conn.execute(
                         """INSERT OR REPLACE INTO snapshots
