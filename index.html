@@ -451,17 +451,37 @@ body {
 /* ─── Tables: data-dense, monospace, no shadows ──────────────────── */
 .tables {
     display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    grid-template-columns: var(--tables-split, 58.3%) 7px minmax(0, 1fr);
     gap: 0;
     border-top: 1px solid var(--rule);
 }
-@media (max-width: 900px) { .tables { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+    .tables { grid-template-columns: 1fr; }
+    .tables-divider { display: none; }
+}
+
+/* Draggable vertical divider between the Top Mentions / Trending tables */
+.tables-divider {
+    position: relative;
+    cursor: col-resize;
+    touch-action: none;
+    align-self: stretch;
+}
+.tables-divider::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0; left: 50%;
+    width: 1px;
+    transform: translateX(-50%);
+    background: var(--rule);
+    transition: background 0.12s, width 0.12s;
+}
+.tables-divider:hover::before,
+.tables-divider.dragging::before { background: var(--amber); width: 2px; }
 
 .tablewrap {
-    border-right: 1px solid var(--rule);
     padding: 0 0 16px;
 }
-.tablewrap:last-child { border-right: none; }
 .tablewrap .scroll { overflow-x: auto; scrollbar-width: none; }
 .tablewrap .scroll::-webkit-scrollbar { display: none; }
 
@@ -565,8 +585,9 @@ tr.row:hover .ticker { color: oklch(0.85 0.135 75); }
     font-size: 12px;
 }
 .mentions { font-weight: 500; }
-/* "Show more / less" row at the foot of the top table */
-#top-table tr.more-row td {
+/* "Show more / less" row at the foot of the top / trending tables */
+#top-table tr.more-row td,
+#trending-table tr.more-row td {
     text-align: center;
     padding: 9px;
     color: var(--ink-3);
@@ -577,8 +598,10 @@ tr.row:hover .ticker { color: oklch(0.85 0.135 75); }
     border-top: 1px solid var(--rule);
     transition: color 0.12s;
 }
-#top-table tr.more-row td:hover { color: var(--amber); }
-#top-table tr.more-row .more-caret { font-size: 8px; margin-left: 2px; }
+#top-table tr.more-row td:hover,
+#trending-table tr.more-row td:hover { color: var(--amber); }
+#top-table tr.more-row .more-caret,
+#trending-table tr.more-row .more-caret { font-size: 8px; margin-left: 2px; }
 .up    { color: var(--up); }
 .down  { color: var(--down); }
 .flat  { color: var(--ink-4); }
@@ -1200,6 +1223,8 @@ footer {
         </div>
     </div>
 
+    <div class="tables-divider" id="tables-divider" title="Drag to resize"></div>
+
     <div class="tablewrap">
         <div class="section-head">
             <span class="label">03</span>
@@ -1396,6 +1421,7 @@ function fmtSenti(s) {
 
 // ── Refresh cycle ──────────────────────────────────────────────────
 let _lastTopRows = [];
+let _lastTrending = [];
 let _lastPrices = {};
 let _lastSentiment = {};
 
@@ -1502,6 +1528,7 @@ async function refresh() {
             fetch(withSrc('/api/fear-greed')).then(r => r.json()).catch(() => ({})),
         ]);
         _lastTopRows = top || [];
+        _lastTrending = trending || [];
         renderTop(top);
         renderTrending(trending);
         renderSectors(sectors);
@@ -1634,13 +1661,10 @@ function toggleTopMore() {
     fillSentiment(_lastSentiment);
 }
 
-function renderTrending(rows) {
-    const body = document.getElementById('trending-body');
-    if (!rows || !rows.length) {
-        body.innerHTML = '<tr><td colspan="7" class="empty">No trending data</td></tr>';
-        return;
-    }
-    body.innerHTML = rows.map(r => `
+let _trendExpanded = false;
+
+function trendRowHtml(r) {
+    return `
         <tr class="row" onclick="openModal(${JSON.stringify(r.ticker)})">
             <td class="ticker">${r.ticker}${fmtHotChip(r)}</td>
             <td class="name">${esc(r.name || '')}</td>
@@ -1650,7 +1674,30 @@ function renderTrending(rows) {
             <td class="num" data-price="${r.ticker}"><span class="flat">…</span></td>
             <td class="num" data-day="${r.ticker}"><span class="flat">…</span></td>
         </tr>
-    `).join('');
+    `;
+}
+
+function renderTrending(rows) {
+    const body = document.getElementById('trending-body');
+    if (!rows || !rows.length) {
+        body.innerHTML = '<tr><td colspan="7" class="empty">No trending data</td></tr>';
+        return;
+    }
+    const visible = _trendExpanded ? rows : rows.slice(0, TOP_VISIBLE);
+    let html = visible.map(trendRowHtml).join('');
+    if (rows.length > TOP_VISIBLE) {
+        const label = _trendExpanded
+            ? 'Show less'
+            : `Show ${rows.length - TOP_VISIBLE} more`;
+        html += `<tr class="more-row"><td colspan="7" onclick="toggleTrendMore()">${label} <span class="more-caret">${_trendExpanded ? '▲' : '▼'}</span></td></tr>`;
+    }
+    body.innerHTML = html;
+}
+
+function toggleTrendMore() {
+    _trendExpanded = !_trendExpanded;
+    renderTrending(_lastTrending);
+    fillPrices(_lastPrices);   // re-populate price/day for revealed rows
 }
 
 function renderSectors(rows) {
@@ -2064,6 +2111,45 @@ document.getElementById('search-input').addEventListener('input', e => {
     const q = e.target.value;
     _searchDebounce = setTimeout(() => runSearch(q), 120);
 });
+
+// Draggable divider between the Top Mentions (02) and Trending (03) tables.
+(function initTablesDivider() {
+    const tables = document.querySelector('.tables');
+    const divider = document.getElementById('tables-divider');
+    if (!tables || !divider) return;
+    const KEY = 'cortex:tables-split';
+    const MIN = 25, MAX = 75;   // clamp the 02-column width, in %
+    const saved = parseFloat(localStorage.getItem(KEY));
+    if (!isNaN(saved)) tables.style.setProperty('--tables-split', saved + '%');
+
+    let dragging = false;
+    function onMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        const rect = tables.getBoundingClientRect();
+        let pct = (e.clientX - rect.left) / rect.width * 100;
+        pct = Math.max(MIN, Math.min(MAX, pct));
+        tables.style.setProperty('--tables-split', pct.toFixed(2) + '%');
+    }
+    function onUp() {
+        if (!dragging) return;
+        dragging = false;
+        divider.classList.remove('dragging');
+        document.body.style.userSelect = '';
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        const cur = parseFloat(tables.style.getPropertyValue('--tables-split'));
+        if (!isNaN(cur)) localStorage.setItem(KEY, cur);
+    }
+    divider.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        dragging = true;
+        divider.classList.add('dragging');
+        document.body.style.userSelect = 'none';
+        document.addEventListener('pointermove', onMove, { passive: false });
+        document.addEventListener('pointerup', onUp);
+    });
+})();
 
 (async () => {
     applyTimescaleHeaders();
