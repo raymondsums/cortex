@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cortex · WSB</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='14' fill='%23161513'/><text x='50' y='53' font-family='ui-monospace,monospace' font-size='44' font-weight='700' fill='%23d6a85a' text-anchor='middle' dominant-baseline='central' letter-spacing='-2'>CX</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -4 60 60'><rect x='-6' y='-4' width='60' height='60' rx='10' fill='%23161513'/><g fill='none' stroke='%23d6a85a' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'><path d='M24 6 C21 5 17 5 15 8 C11 7 7 10 7 15 C4 17 3 23 6 27 C4 31 6 38 12 39 C14 42 20 43 24 41'/><path d='M24 6 C27 5 31 5 33 8 C37 7 41 10 41 15 C44 17 45 23 42 27 C44 31 42 38 36 39 C34 42 28 43 24 41'/><path d='M24 9 L24 39'/><path d='M20 12 C13 12 13 17 19 17'/><path d='M19 21 C11 21 11 26 18 26'/><path d='M20 30 C13 30 13 35 19 35'/><path d='M28 12 C35 12 35 17 29 17'/><path d='M29 21 C37 21 37 26 30 26'/><path d='M28 30 C35 30 35 35 29 35'/></g></svg>">
 
 <!-- Monaspace Neon (body / tables) + Krypton (headings) — github.com/githubnext/monaspace -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -310,12 +310,12 @@ body {
 /* ─── Section header: channel-strip style ────────────────────────── */
 .section-head {
     display: flex; align-items: baseline; gap: 12px;
-    padding: 18px 24px 10px;
+    padding: 26px 24px 10px;
     flex-wrap: wrap;             /* wrap the timescale strip on narrow widths */
     /* Fixed band height so headers with a timescale strip (02) and ones with
        plain meta text (03) end at the same baseline — keeps the column-title
        rows of side-by-side tables aligned. */
-    min-height: 48px;
+    min-height: 56px;
 }
 .section-head .rule { min-width: 12px; }
 .timescale-strip { flex-shrink: 0; }
@@ -343,6 +343,7 @@ body {
     letter-spacing: 0.10em;
     text-transform: uppercase;
 }
+.section-head .meta-short { display: none; }   /* desktop uses the full label */
 
 /* ─── Sector heatmap ─────────────────────────────────────────────── */
 .sector-wrap {
@@ -368,14 +369,14 @@ body {
        green, coldest sits at plain bg-2 with no tint. */
     --heat: 0;
     background: color-mix(in oklch, var(--bg-2), var(--up) calc(var(--heat) * 32%));
-    padding: 14px 14px 12px;
-    min-height: 96px;
+    padding: 14px 14px 14px;
+    min-height: 120px;
     position: relative;
     /* Visible overflow so the hover popover (.sec-tickers) can escape. */
     display: grid;
-    grid-template-rows: 28px auto 16px;
+    grid-template-rows: 28px 1fr auto auto;
     align-items: start;
-    row-gap: 2px;
+    row-gap: 5px;
     transition: background 0.4s ease;
     cursor: default;
 }
@@ -447,10 +448,11 @@ body {
     align-self: end;
     white-space: nowrap;
 }
+.sec-delta-row { font-size: 12px; line-height: 1; align-self: end; }
 .sec-delta { font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: 0; }
 .sec-delta.up { color: var(--up); }
 .sec-delta.down { color: var(--down); }
-.sec-delta-label { color: var(--ink-4); }
+.sec-delta-ago { color: color-mix(in oklch, var(--ink-4), var(--ink-2) calc(var(--heat) * 100%)); font-weight: 400; font-size: 0.7em; letter-spacing: 0.02em; white-space: nowrap; }
 .sector-cell .sec-label {
     /* Section label also bumps slightly on hot cells (less aggressive
        since ink-3 already has decent contrast). */
@@ -462,7 +464,9 @@ body {
     display: grid;
     grid-template-columns: var(--tables-split, 58.3%) 7px minmax(0, 1fr);
     gap: 0;
-    border-top: 1px solid var(--rule);
+    /* Extra breathing room below the Sector Buzz section (its bottom border
+       is the divider; no need for a second border-top here). */
+    margin-top: 14px;
 }
 @media (max-width: 900px) {
     /* Stack as plain full-width blocks (grid tracks were shrink-wrapping the
@@ -683,6 +687,12 @@ tr.row:hover .ticker { color: oklch(0.85 0.135 75); }
     border: 1px solid var(--rule);
     padding: 2px 6px;
 }
+/* The header search trigger is an icon, not a kbd badge */
+.search-trigger { border: none; padding: 2px; line-height: 0; display: inline-flex; align-items: center; color: var(--ink-3); }
+.search-trigger:hover { color: var(--ink); }
+/* Brain mark + wordmark lockup */
+.brand { display: flex; align-items: center; gap: 7px; }
+.brand-icon { color: var(--amber); display: flex; align-items: center; line-height: 0; }
 .search-results { max-height: 60vh; overflow-y: auto; scrollbar-width: none; }
 .search-results::-webkit-scrollbar { display: none; }
 .search-result {
@@ -1030,12 +1040,14 @@ canvas { display: block; max-width: 100%; }
     /* Section headers tighten in + wrap so the timescale strip drops
        to the next line on narrow screens instead of overflowing. */
     .section-head {
-        padding: 14px 14px 8px;
+        padding: 22px 14px 8px;
         gap: 8px;
         flex-wrap: wrap;
     }
     .section-head .label { font-size: 10px; letter-spacing: 0.16em; }
     .section-head .meta  { display: none; }
+    .section-head .meta-short { display: inline; }   /* 03 context on mobile */
+    .section-head .meta-always { display: inline; }  /* 01 context on mobile */
     .section-head .rule  { flex: 1 1 0; min-width: 12px; }
     .timescale-strip { margin-left: auto; }
     .ts-btn { font-size: 9px; padding: 3px 6px; letter-spacing: 0.08em; }
@@ -1167,10 +1179,13 @@ footer {
 
 <div class="statusbar">
     <div class="left">
-        <span class="wordmark">CORTEX</span>
+        <span class="brand">
+            <span class="brand-icon"><svg width="18" height="18" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6 C21 5 17 5 15 8 C11 7 7 10 7 15 C4 17 3 23 6 27 C4 31 6 38 12 39 C14 42 20 43 24 41"/><path d="M24 6 C27 5 31 5 33 8 C37 7 41 10 41 15 C44 17 45 23 42 27 C44 31 42 38 36 39 C34 42 28 43 24 41"/><path d="M24 9 L24 39"/><path d="M20 12 C13 12 13 17 19 17"/><path d="M19 21 C11 21 11 26 18 26"/><path d="M20 30 C13 30 13 35 19 35"/><path d="M28 12 C35 12 35 17 29 17"/><path d="M29 21 C37 21 37 26 30 26"/><path d="M28 30 C35 30 35 35 29 35"/></svg></span>
+            <span class="wordmark">CORTEX</span>
+        </span>
     </div>
     <div class="right">
-        <span class="search-kbd" style="cursor:pointer;" onclick="openSearch()" title="Search any ticker">⌘ K</span>
+        <span class="search-kbd search-trigger" style="cursor:pointer;" onclick="openSearch()" title="Search any ticker" aria-label="Search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
         <span id="status-updated">Updated —</span>
         <span id="status-next">Next pull —</span>
     </div>
@@ -1205,7 +1220,7 @@ footer {
         <span class="label">01</span>
         <span class="label">SECTOR BUZZ</span>
         <span class="rule"></span>
-        <span class="meta">Δ mentions vs 24h ago</span>
+        <span class="meta meta-always">No. of mentions</span>
     </div>
     <div class="sector-wrap">
         <div class="sector-grid" id="sector-grid">
@@ -1252,7 +1267,8 @@ footer {
             <span class="label">03</span>
             <span class="label">TRENDING</span>
             <span class="rule"></span>
-            <span class="meta">Rank ↑ vs 24h ago</span>
+            <span class="meta meta-full">Rank ↑ vs 24h ago</span>
+            <span class="meta meta-short">vs 24h ago</span>
         </div>
         <div class="scroll">
             <table id="trending-table">
@@ -1740,7 +1756,7 @@ function renderSectors(rows) {
     const max = Math.max(...shown.map(r => r.mentions));
     // Heat scale: linear ratio of this cell's mentions to the hottest one.
     // The CSS color-mix above translates --heat 0…1 into green tint.
-    grid.innerHTML = shown.map(r => {
+    grid.innerHTML = shown.map((r, i) => {
         const heat = max > 0 ? r.mentions / max : 0;
         const list = r.tickers_list || [];
         const tickerHtml = list.map(t =>
@@ -1753,8 +1769,9 @@ function renderSectors(rows) {
             const d = r.mentions - prev;
             if (d !== 0) {
                 const cls = d > 0 ? 'up' : 'down';
-                const sign = d > 0 ? '+' : '−';
-                deltaHtml = ` · <span class="sec-delta ${cls}">${sign}${Math.abs(d).toLocaleString()}</span>`;
+                const arrow = d > 0 ? '↑' : '↓';
+                const ago = i === 0 ? ' <span class="sec-delta-ago">vs 24h ago</span>' : '';
+                deltaHtml = `<span class="sec-delta ${cls}">${arrow}${Math.abs(d).toLocaleString()}</span>${ago}`;
             }
         }
         return `
@@ -1762,7 +1779,8 @@ function renderSectors(rows) {
              onclick="toggleSectorOpen(this)">
             <div class="sec-label">${esc(r.sector)}</div>
             <div class="sec-val">${r.mentions.toLocaleString()}</div>
-            <div class="sec-tail">${r.tickers} ticker${r.tickers === 1 ? '' : 's'}${deltaHtml}</div>
+            <div class="sec-delta-row">${deltaHtml}</div>
+            <div class="sec-tail">${r.tickers} ticker${r.tickers === 1 ? '' : 's'}</div>
             ${list.length ? `
               <div class="sec-tickers">
                 <div class="sec-tickers-head">${esc(r.sector)} · tickers</div>
