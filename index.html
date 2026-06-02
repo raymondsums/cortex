@@ -69,6 +69,10 @@ html, body {
     font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Prevent the whole page from scrolling sideways on mobile if any
+       child overflows. The sector-grid keeps its own overflow-x scroll. */
+    overflow-x: hidden;
+    max-width: 100vw;
 }
 body {
     display: flex; flex-direction: column;
@@ -150,6 +154,116 @@ body {
 }
 .clock { color: var(--ink-2); font-variant-numeric: tabular-nums; letter-spacing: 0; }
 
+/* ─── Fear & Greed band ──────────────────────────────────────────── */
+.fg-band {
+    display: flex; align-items: center; gap: 14px;
+    padding: 9px 24px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--bg-2);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    flex-wrap: wrap;
+}
+.fg-divider {
+    width: 1px; height: 18px;
+    background: var(--rule);
+    flex-shrink: 0;
+}
+.fg-drivers-label {
+    color: var(--ink-4);
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.fg-comp {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    color: var(--ink-3);
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+}
+.fg-comp-name { color: var(--ink-2); }
+.fg-comp-val {
+    color: var(--ink); font-weight: 700;
+    font-family: var(--mono-display);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+}
+.fg-comp-mark {
+    font-family: var(--mono-body);
+    font-size: 9px;
+    letter-spacing: -1px;
+    color: var(--ink-4);
+}
+.fg-comp.bucket-extreme-fear  .fg-comp-mark { color: var(--down); }
+.fg-comp.bucket-fear          .fg-comp-mark { color: color-mix(in oklch, var(--down), var(--ink-3) 30%); }
+.fg-comp.bucket-neutral       .fg-comp-mark { color: var(--ink-4); }
+.fg-comp.bucket-greed         .fg-comp-mark { color: color-mix(in oklch, var(--up), var(--ink-3) 30%); }
+.fg-comp.bucket-extreme-greed .fg-comp-mark { color: var(--up); }
+.fg-label {
+    color: var(--ink-2);
+    font-weight: 500;
+    white-space: nowrap;
+}
+.fg-gauge {
+    position: relative;
+    flex: 0 0 220px;            /* fixed width on desktop, no stretch */
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(to right,
+        oklch(0.68 0.115 25 / 0.45),
+        oklch(0.55 0.010 70 / 0.35),
+        oklch(0.74 0.105 145 / 0.45));
+}
+@media (max-width: 600px) {
+    .fg-gauge { flex: 1 1 120px; }   /* let it grow on phone where space is tight */
+}
+.fg-gauge::before, .fg-gauge::after {
+    content: ''; position: absolute; top: -3px; bottom: -3px;
+    width: 1px; background: var(--rule);
+}
+.fg-gauge::before { left: 25%; }
+.fg-gauge::after  { left: 75%; }
+.fg-marker {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--ink);
+    top: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 2px var(--bg-2),
+                0 0 10px oklch(0.78 0.135 75 / 0.4);
+    transition: left 0.5s cubic-bezier(0.2, 0.7, 0.25, 1);
+}
+.fg-value {
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-family: var(--mono-display);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    min-width: 24px; text-align: right;
+}
+.fg-class { color: var(--amber); white-space: nowrap; }
+.fg-class.bucket-extreme-fear { color: var(--down); }
+.fg-class.bucket-fear         { color: color-mix(in oklch, var(--down), var(--ink-3) 30%); }
+.fg-class.bucket-neutral      { color: var(--ink-2); }
+.fg-class.bucket-greed        { color: color-mix(in oklch, var(--up), var(--ink-3) 30%); }
+.fg-class.bucket-extreme-greed{ color: var(--up); }
+.fg-source {
+    color: var(--ink-4); font-size: 9px;
+    margin-left: -8px; opacity: 0.7;
+}
+
+@media (max-width: 600px) {
+    .fg-band { padding: 8px 14px; gap: 10px; font-size: 9px; }
+    .fg-value { font-size: 12px; min-width: 22px; }
+    .fg-source { display: none; }
+}
+
 /* ─── Wordmark band ──────────────────────────────────────────────── */
 .title-band {
     padding: 22px 24px 18px;
@@ -197,7 +311,10 @@ body {
 .section-head {
     display: flex; align-items: baseline; gap: 12px;
     padding: 18px 24px 10px;
+    flex-wrap: wrap;             /* wrap the timescale strip on narrow widths */
 }
+.section-head .rule { min-width: 12px; }
+.timescale-strip { flex-shrink: 0; }
 .section-head .label {
     font-family: var(--mono-display);
     font-weight: 700;
@@ -230,11 +347,17 @@ body {
     border-bottom: 1px solid var(--rule);
 }
 .sector-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+    /* Single-line strip — scrolls horizontally when there are more
+       sectors than fit in the viewport. */
+    display: flex;
     gap: 1px;
     background: var(--rule);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
 }
+.sector-grid::-webkit-scrollbar { display: none; }
+.sector-cell { flex: 0 0 158px; }
 .sector-cell {
     /* Heat tint: muted sage green mixed into the cell bg by the --heat
        variable (0…1, set per cell in JS). Hottest sector reads as strong
@@ -272,7 +395,7 @@ body {
     scrollbar-width: none;
 }
 .sector-cell .sec-tickers::-webkit-scrollbar { display: none; }
-.sector-cell:hover .sec-tickers { opacity: 1; pointer-events: auto; }
+.sector-cell.open .sec-tickers { opacity: 1; pointer-events: auto; }
 .sec-tickers-head {
     font-size: 9.5px;
     letter-spacing: 0.14em;
@@ -346,7 +469,27 @@ table {
     width: 100%;
     border-collapse: collapse;
     font-variant-numeric: tabular-nums;
+    table-layout: fixed;
 }
+/* Fixed widths per column so placeholder cells ("…") don't grow when
+   real values land — keeps the table from reflowing on every refresh. */
+#top-table th:nth-child(1) { width: 38px;  }   /* # */
+#top-table th:nth-child(2) { width: 112px; }   /* Ticker (+ hot chip) */
+#top-table th:nth-child(3) { width: auto;  }   /* Name — takes the rest */
+#top-table th:nth-child(4) { width: 80px;  }   /* Mentions */
+#top-table th:nth-child(5) { width: 64px;  }   /* 24h */
+#top-table th:nth-child(6) { width: 78px;  }   /* Trend sparkline */
+#top-table th:nth-child(7) { width: 80px;  }   /* Price */
+#top-table th:nth-child(8) { width: 66px;  }   /* Day */
+#top-table th:nth-child(9) { width: 110px; }   /* News */
+
+#trending-table th:nth-child(1) { width: 112px; } /* Ticker (+ hot chip) */
+#trending-table th:nth-child(2) { width: auto; }  /* Name */
+#trending-table th:nth-child(3) { width: 60px; }  /* Now */
+#trending-table th:nth-child(4) { width: 60px; }  /* Was */
+#trending-table th:nth-child(5) { width: 64px; }  /* Δ */
+#trending-table th:nth-child(6) { width: 80px; }  /* Price */
+#trending-table th:nth-child(7) { width: 66px; }  /* Day */
 th {
     text-align: left;
     font-weight: 500;
@@ -363,6 +506,34 @@ th {
 th:first-child { padding-left: 24px; }
 th:last-child  { padding-right: 24px; }
 th.num { text-align: right; }
+th.th-timescale {
+    color: var(--ink-3);
+    user-select: none;
+}
+
+/* Section-header timescale strip — controls Mentions Δ + Trend + Price Δ */
+.timescale-strip {
+    display: inline-flex;
+    gap: 2px;
+    padding: 1px;
+    background: var(--bg-3);
+    border: 1px solid var(--rule);
+    margin-left: auto;
+}
+.ts-btn {
+    font: inherit;
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: transparent;
+    border: none;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+}
+.ts-btn:hover { color: var(--ink); }
+.ts-btn.active { color: var(--bg); background: var(--amber); }
 
 td {
     padding: 8px 10px 8px 0;
@@ -394,6 +565,20 @@ tr.row:hover .ticker { color: oklch(0.85 0.135 75); }
     font-size: 12px;
 }
 .mentions { font-weight: 500; }
+/* "Show more / less" row at the foot of the top table */
+#top-table tr.more-row td {
+    text-align: center;
+    padding: 9px;
+    color: var(--ink-3);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-top: 1px solid var(--rule);
+    transition: color 0.12s;
+}
+#top-table tr.more-row td:hover { color: var(--amber); }
+#top-table tr.more-row .more-caret { font-size: 8px; margin-left: 2px; }
 .up    { color: var(--up); }
 .down  { color: var(--down); }
 .flat  { color: var(--ink-4); }
@@ -526,15 +711,23 @@ tr.row:hover .ticker { color: oklch(0.85 0.135 75); }
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }
-.senti-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--ink-4);
+/* Sentiment mark — triangles indicate conviction. ▲▲ = strong bull,
+   ▲ = mild bull, — = neutral, ▼ = mild bear, ▼▼ = strong bear. The
+   doubled vs single mark reads instantly without relying on subtle
+   color shifts. */
+.senti-mark {
+    font-size: 10px;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: var(--ink-4);
+    min-width: 14px;
+    text-align: center;
 }
-.senti.bull       .senti-dot { background: var(--up); }
-.senti.mild-bull  .senti-dot { background: color-mix(in oklch, var(--up), var(--ink-3) 35%); }
-.senti.neutral    .senti-dot { background: var(--ink-4); }
-.senti.mild-bear  .senti-dot { background: color-mix(in oklch, var(--down), var(--ink-3) 35%); }
-.senti.bear       .senti-dot { background: var(--down); }
+.senti.bull       .senti-mark { color: var(--up);   }
+.senti.mild-bull  .senti-mark { color: var(--up);   }
+.senti.neutral    .senti-mark { color: var(--ink-4); }
+.senti.mild-bear  .senti-mark { color: var(--down); }
+.senti.bear       .senti-mark { color: var(--down); }
 .senti .lbl       { color: var(--ink-3); }
 .senti.bull       .lbl, .senti.mild-bull .lbl { color: var(--up); }
 .senti.bear       .lbl, .senti.mild-bear .lbl { color: var(--down); }
@@ -762,6 +955,156 @@ tr.row:hover .ticker { color: oklch(0.85 0.135 75); }
 }
 canvas { display: block; max-width: 100%; }
 
+/* ─── Mobile pass ──────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    body { font-size: 12px; }
+
+    /* Status bar — single row: CORTEX + "Updated Xs ago".
+       Anything else (search chip, next-pull) drops below. */
+    .statusbar {
+        padding: 9px 14px;
+        gap: 10px;
+        font-size: 10px;
+        display: grid;
+        grid-template-areas:
+            "brand updated";
+        grid-template-columns: auto 1fr;
+        align-items: center;
+    }
+    .statusbar .wordmark { grid-area: brand; }
+    .statusbar .left,
+    .statusbar .right    { display: contents; }   /* unwrap; children land in grid */
+    .statusbar #status-updated { grid-area: updated; justify-self: end; color: var(--ink-3); }
+    .statusbar #status-next,
+    .statusbar .search-kbd     { display: none; }
+    .statusbar #clock,
+    .statusbar #status-next,
+    .statusbar .sep,
+    .statusbar .search-kbd { display: none; }
+    .statusbar #status-updated { font-size: 9.5px; }
+    .channels { padding: 1px; }
+    .channel-btn {
+        font-size: 9.5px;
+        letter-spacing: 0.06em;
+        padding: 4px 7px;
+    }
+
+    /* Section headers tighten in + wrap so the timescale strip drops
+       to the next line on narrow screens instead of overflowing. */
+    .section-head {
+        padding: 14px 14px 8px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .section-head .label { font-size: 10px; letter-spacing: 0.16em; }
+    .section-head .meta  { display: none; }
+    .section-head .rule  { flex: 1 1 0; min-width: 12px; }
+    .timescale-strip { margin-left: auto; }
+    .ts-btn { font-size: 9px; padding: 3px 6px; letter-spacing: 0.08em; }
+
+    /* Sector heatmap: 2 columns, tighter. Switch hover-popover to a
+       toggleable .open class set by tap (touch has no real hover). */
+    .sector-wrap { padding-left: 14px; }
+    .sector-cell { flex: 0 0 140px; padding: 12px 12px 10px; min-height: 84px; }
+    .sector-cell .sec-val { font-size: 20px; }
+    /* Tables — hide secondary columns so the row fits without scrolling,
+       and give each row real vertical breathing room so the feed reads as
+       a calm list rather than a dense grid. nth-child works because the
+       header + body rows share the same column count. */
+    table { font-size: 13px; }
+    th { font-size: 9px; padding: 9px 8px 9px 0; }
+    th:first-child, td:first-child { padding-left: 16px; }
+    th:last-child,  td:last-child  { padding-right: 16px; }
+    td { font-size: 13px; padding: 14px 8px 14px 0; }   /* ~75% taller rows */
+    .name { max-width: 110px; font-size: 11px; }
+    .ticker { font-size: 14.5px; }   /* bigger primary value / tap target */
+
+    /* Top Mentions on phone: trim to the 5 essentials —
+       # / Ticker / Mentions / Price / Day %. Hide Name, 24h-Δ, the Trend
+       sparkline, and the News dot so the row never feels crowded. */
+    #top-table th:nth-child(3),  #top-table td:nth-child(3),   /* Name */
+    #top-table th:nth-child(5),  #top-table td:nth-child(5),   /* 24h */
+    #top-table th:nth-child(6),  #top-table td:nth-child(6),   /* Trend */
+    #top-table th:nth-child(9),  #top-table td:nth-child(9) {  /* News */
+        display: none;
+    }
+    /* Trending: keep Ticker / Now / Δ / Price; hide Name, Was, Day. */
+    #trending-table th:nth-child(2), #trending-table td:nth-child(2),  /* Name */
+    #trending-table th:nth-child(4), #trending-table td:nth-child(4),  /* Was */
+    #trending-table th:nth-child(7), #trending-table td:nth-child(7) { /* Day */
+        display: none;
+    }
+    /* Re-apply right padding to whichever cell is *visually* last after the
+       hides above (DOM-order :last-child points at a hidden column). */
+    #top-table th:nth-child(8), #top-table td:nth-child(8),        /* Day */
+    #trending-table th:nth-child(6),
+    #trending-table td:nth-child(6) { padding-right: 16px; }
+
+    /* Tables stack with a soft rule between them. */
+    .tables { grid-template-columns: 1fr; }
+    .tablewrap { border-right: none; border-bottom: 1px solid var(--rule); }
+    .tablewrap:last-child { border-bottom: none; }
+    .tablewrap .scroll { overflow-x: hidden; }   /* don't let table itself scroll either */
+    table { max-width: 100%; }                   /* keep table-layout: fixed from base */
+
+    /* Mobile column widths — numeric cells fixed; Ticker takes the slack
+       (Name is hidden) so the row fills the viewport cleanly instead of
+       clipping or leaving a gap at the right edge. */
+    #top-table th:nth-child(1) { width: 34px;  }   /* # */
+    #top-table th:nth-child(2) { width: auto;  }   /* Ticker (+ chip) — slack */
+    #top-table th:nth-child(4) { width: 64px;  }   /* Mentions */
+    #top-table th:nth-child(7) { width: 72px;  }   /* Price */
+    #top-table th:nth-child(8) { width: 64px;  }   /* Day % */
+
+    #trending-table th:nth-child(1) { width: auto; }  /* Ticker (+ chip) — slack */
+    #trending-table th:nth-child(3) { width: 56px; }  /* Now */
+    #trending-table th:nth-child(5) { width: 60px; }  /* Δ */
+    #trending-table th:nth-child(6) { width: 76px; }  /* Price */
+
+    /* Section header rule grows endlessly on a narrow screen and pushes
+       the timescale strip off-edge. Hide it on phones — the wordmark
+       labels are enough delineation. */
+    .section-head .rule { display: none; }
+    .section-head { padding-right: 12px; }
+
+    /* News column: dot only, drop the label + article count so the row
+       fits across narrow phones. */
+    .senti .lbl, .senti .count { display: none; }
+    .senti { gap: 0; }
+    .senti-dot { width: 8px; height: 8px; }
+
+    /* Sparkline cell — slightly smaller on phones. */
+    .spark { width: 44px; height: 14px; }
+
+    /* Modal — full-screen drawer feel on phones. */
+    .modal-bg { padding: 0; align-items: stretch; }
+    .modal { max-width: none; max-height: 100dvh; border: none; }
+    .modal-head { padding: 12px 16px; font-size: 9.5px; }
+    .modal-hero { padding: 16px 16px 12px; gap: 10px; }
+    .modal-hero .tk { font-size: 28px; }
+    .modal-links { padding: 0 16px 14px; gap: 5px; }
+    .modal-link { font-size: 9.5px; padding: 4px 7px; }
+    .modal-stats { grid-template-columns: repeat(2, 1fr); }
+    .modal-stat { padding: 12px 16px; }
+    .modal-stat .v { font-size: 16px; }
+    .modal-channels { padding: 14px 16px 16px; }
+    .ch-bar-row { grid-template-columns: 50px minmax(0, 1fr) 44px; column-gap: 8px; font-size: 10px; }
+    .ch-bar-row .ch-name { font-size: 9px; }
+    .modal-chart-wrap { padding: 16px 16px 20px; }
+    .news-list { padding: 12px 16px 18px; }
+    .news-item { column-gap: 8px; }
+    .news-item a { font-size: 12px; }
+
+    /* Search palette — sit at top of viewport on phone. */
+    .search-bg { padding-top: 8vh; padding-left: 12px; padding-right: 12px; }
+    .search-panel { max-width: none; }
+    .search-input { font-size: 15px; }
+
+    /* Footer — single line. */
+    footer { padding: 12px 14px; font-size: 9.5px; }
+    footer span:first-child { display: none; }
+}
+
 /* ─── Footer caption ─────────────────────────────────────────────── */
 footer {
     margin-top: auto;
@@ -781,16 +1124,11 @@ footer {
 <div class="statusbar">
     <div class="left">
         <span class="wordmark">CORTEX</span>
-        <span class="sep"></span>
-        <span>Channel</span>
-        <div class="channels" id="channels"></div>
     </div>
     <div class="right">
         <span class="search-kbd" style="cursor:pointer;" onclick="openSearch()" title="Search any ticker">⌘ K</span>
-        <span class="led"><span class="led-dot"></span><span>Live</span></span>
         <span id="status-updated">Updated —</span>
         <span id="status-next">Next pull —</span>
-        <span class="clock" id="clock">--:--:--</span>
     </div>
 </div>
 
@@ -807,12 +1145,23 @@ footer {
     </div>
 </div>
 
+<div class="fg-band" id="fg-band">
+    <span class="fg-label">Fear &amp; Greed</span>
+    <div class="fg-gauge">
+        <div class="fg-marker" id="fg-marker" style="left: 50%;"></div>
+    </div>
+    <span class="fg-value" id="fg-value">—</span>
+    <span class="fg-class" id="fg-class">—</span>
+    <span class="fg-divider" id="fg-drivers-sep"></span>
+    <span id="fg-drivers"></span>
+</div>
+
 <section id="sector-section">
     <div class="section-head">
         <span class="label">01</span>
         <span class="label">SECTOR BUZZ</span>
         <span class="rule"></span>
-        <span class="meta">Mentions aggregated by GICS sector</span>
+        <span class="meta"></span>
     </div>
     <div class="sector-wrap">
         <div class="sector-grid" id="sector-grid">
@@ -827,7 +1176,7 @@ footer {
             <span class="label">02</span>
             <span class="label">TOP MENTIONS</span>
             <span class="rule"></span>
-            <span class="meta">Current snapshot</span>
+            <div class="timescale-strip" id="timescale-strip"></div>
         </div>
         <div class="scroll">
             <table id="top-table">
@@ -837,10 +1186,10 @@ footer {
                         <th>Ticker</th>
                         <th>Name</th>
                         <th class="num">Mentions</th>
-                        <th class="num">24h</th>
+                        <th class="num th-timescale">24h</th>
                         <th>Trend</th>
                         <th class="num">Price</th>
-                        <th class="num">Day</th>
+                        <th class="num th-timescale">Day</th>
                         <th>News</th>
                     </tr>
                 </thead>
@@ -868,7 +1217,7 @@ footer {
                         <th class="num">Was</th>
                         <th class="num">Δ</th>
                         <th class="num">Price</th>
-                        <th class="num">Day</th>
+                        <th class="num th-timescale">Day</th>
                     </tr>
                 </thead>
                 <tbody id="trending-body">
@@ -879,10 +1228,6 @@ footer {
     </div>
 </div>
 
-<footer>
-    <span>Source · ApeWisdom api/v1.0 · cached 5 minutes</span>
-    <span>Cortex — instrumented for the social crowd</span>
-</footer>
 
 <div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
     <div class="modal">
@@ -935,45 +1280,9 @@ const FETCH_INTERVAL_MIN = 30;
 const COLOR_AMBER = getComputedStyle(document.documentElement)
     .getPropertyValue('--amber').trim() || '#d6a85a';
 
-// ── Channel (subreddit) selector ────────────────────────────────────
-const CURRENT_SOURCE_KEY = 'cortex:source';
-// One-time reset: when this version bumps, everyone's saved channel
-// preference is cleared and the default (wallstreetbets) takes over.
-// Future explicit selections still persist as normal.
-const PREF_VERSION_KEY = 'cortex:prefs:v';
-const PREF_VERSION = '2';
-if (localStorage.getItem(PREF_VERSION_KEY) !== PREF_VERSION) {
-    localStorage.removeItem(CURRENT_SOURCE_KEY);
-    localStorage.removeItem('hivemind:source');   // old key from pre-rename
-    localStorage.setItem(PREF_VERSION_KEY, PREF_VERSION);
-}
-let CURRENT_SOURCE = localStorage.getItem(CURRENT_SOURCE_KEY) || 'wallstreetbets';
-let _sourcesCache = [];
-
-async function loadChannels() {
-    _sourcesCache = await fetch('/api/sources').then(r => r.json()).catch(() => []);
-    const wrap = document.getElementById('channels');
-    wrap.innerHTML = _sourcesCache.map(s => `
-        <button class="channel-btn ${s.key === CURRENT_SOURCE ? 'active' : ''}"
-                data-source="${s.key}" onclick="selectChannel('${s.key}')">${s.short}</button>
-    `).join('');
-}
-
-function selectChannel(key) {
-    if (key === CURRENT_SOURCE) return;
-    CURRENT_SOURCE = key;
-    localStorage.setItem(CURRENT_SOURCE_KEY, key);
-    document.querySelectorAll('.channel-btn').forEach(b =>
-        b.classList.toggle('active', b.dataset.source === key));
-    // Clear stale rows so the user sees a clean transition.
-    document.getElementById('top-body').innerHTML =
-        '<tr><td colspan="9" class="empty">Loading data feed</td></tr>';
-    document.getElementById('trending-body').innerHTML =
-        '<tr><td colspan="7" class="empty">Loading</td></tr>';
-    document.getElementById('sector-grid').innerHTML =
-        '<div class="sector-cell"><div class="sec-label">Loading</div></div>';
-    refresh();
-}
+// ── Channel source ──────────────────────────────────────────────────
+// Single channel — r/wallstreetbets only. No channel selector in the UI.
+const CURRENT_SOURCE = 'wallstreetbets';
 
 function withSrc(url) {
     const sep = url.includes('?') ? '&' : '?';
@@ -1023,13 +1332,7 @@ function esc(s) {
 }
 function pad(n) { return String(n).padStart(2, '0'); }
 
-// ── Clock tick ─────────────────────────────────────────────────────
-function tickClock() {
-    const d = new Date();
-    document.getElementById('clock').textContent =
-        `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-setInterval(tickClock, 1000); tickClock();
+// Clock removed from the status bar.
 
 // ── Sparkline ──────────────────────────────────────────────────────
 function drawSpark(canvas, points) {
@@ -1074,11 +1377,18 @@ const SENTI_CLASS = {
     'Neutral': 'neutral',
     'Mild bearish': 'mild-bear', 'Bearish': 'bear',
 };
+const SENTI_MARK = {
+    'bull':       '▲▲',
+    'mild-bull':  '▲',
+    'neutral':    '—',
+    'mild-bear':  '▼',
+    'bear':       '▼▼',
+};
 function fmtSenti(s) {
-    if (!s) return '<span class="senti"><span class="senti-dot"></span><span class="lbl">No news</span></span>';
+    if (!s) return '<span class="senti"><span class="senti-mark">·</span><span class="lbl">No news</span></span>';
     const cls = SENTI_CLASS[s.label] || 'neutral';
-    return `<span class="senti ${cls}" title="${s.score} · ${s.articles} articles">
-        <span class="senti-dot"></span>
+    return `<span class="senti ${cls}" title="${s.label} · ${s.score} · ${s.articles} articles">
+        <span class="senti-mark">${SENTI_MARK[cls] || '—'}</span>
         <span class="lbl">${s.label}</span>
         <span class="count">${s.articles}</span>
     </span>`;
@@ -1089,6 +1399,91 @@ let _lastTopRows = [];
 let _lastPrices = {};
 let _lastSentiment = {};
 
+// ── Timescale toggle (Hour / Day / Week) ──────────────────────────
+// Drives three columns: mention change (24h column), Trend sparkline
+// window, and price change (Day column).
+const PRICE_TIMESCALE_KEY = 'cortex:price-timescale';
+const TIMESCALE_LABELS = { hour: 'Hour', day: 'Day', week: 'Week' };
+const TIMESCALE_CYCLE  = ['hour', 'day', 'week'];
+// Window for mention-change comparison (in hours).
+const TIMESCALE_COMPARE_H = { hour: 1, day: 24, week: 168 };
+// Window for the inline sparkline (in hours).
+const SPARK_WINDOW_H      = { hour: 6, day: 48, week: 168 };
+let PRICE_TIMESCALE = localStorage.getItem(PRICE_TIMESCALE_KEY) || 'day';
+if (!TIMESCALE_LABELS[PRICE_TIMESCALE]) PRICE_TIMESCALE = 'day';
+
+let _lastBulk = {};   // ticker -> [{fetched_utc, mentions}, ...]
+
+function renderTimescaleStrip() {
+    const el = document.getElementById('timescale-strip');
+    if (!el) return;
+    el.innerHTML = TIMESCALE_CYCLE.map(k =>
+        `<button class="ts-btn ${k === PRICE_TIMESCALE ? 'active' : ''}"
+                 data-ts="${k}" onclick="setPriceTimescale('${k}')">${TIMESCALE_LABELS[k]}</button>`
+    ).join('');
+}
+function applyTimescaleHeaders() {
+    const label = TIMESCALE_LABELS[PRICE_TIMESCALE];
+    document.querySelectorAll('.th-timescale').forEach(el => {
+        el.textContent = label;
+    });
+    renderTimescaleStrip();
+}
+function setPriceTimescale(key) {
+    if (!TIMESCALE_LABELS[key] || key === PRICE_TIMESCALE) return;
+    PRICE_TIMESCALE = key;
+    localStorage.setItem(PRICE_TIMESCALE_KEY, key);
+    applyTimescaleHeaders();
+    // Re-render rows so the mentions-Δ column recomputes immediately, and
+    // re-fetch the sparkline window to match the new timescale.
+    if (_lastTopRows.length) {
+        renderTop(_lastTopRows);
+        fillSparks(_lastBulk);              // instant feedback from cached data
+        fillSentiment(_lastSentiment);
+    }
+    if (_lastPrices && Object.keys(_lastPrices).length) fillPrices(_lastPrices);
+    refetchSparklines();
+}
+async function refetchSparklines() {
+    const tickers = _lastTopRows.map(r => r.ticker);
+    if (!tickers.length) return;
+    const hours = SPARK_WINDOW_H[PRICE_TIMESCALE];
+    _lastBulk = await fetch(withSrc(`/api/history-bulk?tickers=${tickers.join(',')}&hours=${hours}`)).then(r => r.json());
+    fillSparks(_lastBulk);
+    // Also re-render top to refresh the mentions-change column from new data.
+    renderTop(_lastTopRows);
+    fillSentiment(_lastSentiment);
+}
+
+function priceChangeFor(info) {
+    if (!info) return null;
+    const k = 'change_pct_' + PRICE_TIMESCALE;
+    return info[k] != null ? info[k] : info.change_pct;   // fallback
+}
+
+// Mention-change for a ticker, scaled to the current timescale.
+// Day uses ApeWisdom's mentions_24h_ago (most accurate). Hour + Week
+// derive from our own snapshot history.
+function mentionsChangeFor(row) {
+    if (PRICE_TIMESCALE === 'day') {
+        if (!row.mentions_24h_ago || row.mentions_24h_ago === 0) return null;
+        return row.mentions / row.mentions_24h_ago;
+    }
+    const data = _lastBulk[row.ticker] || [];
+    if (data.length < 2) return null;
+    const targetH = TIMESCALE_COMPARE_H[PRICE_TIMESCALE];
+    const latest  = data[data.length - 1];
+    const cutoff  = latest.fetched_utc - targetH * 3600;
+    let then = null;
+    for (const d of data) {
+        if (d.fetched_utc <= cutoff) then = d;
+        else break;
+    }
+    if (!then) then = data[0];
+    if (!then.mentions) return null;
+    return latest.mentions / then.mentions;
+}
+
 async function refresh() {
     try {
         // Crypto has no GICS sector data — skip the sectors fetch + hide
@@ -1097,19 +1492,21 @@ async function refresh() {
         document.getElementById('sector-section').style.display =
             showSectors ? '' : 'none';
 
-        const [top, trending, sectors, health] = await Promise.all([
+        const [top, trending, sectors, health, fg] = await Promise.all([
             fetch(withSrc('/api/top?limit=25')).then(r => r.json()),
             fetch(withSrc('/api/trending?limit=20')).then(r => r.json()),
             showSectors
                 ? fetch(withSrc('/api/sectors')).then(r => r.json())
                 : Promise.resolve([]),
             fetch(withSrc('/api/health')).then(r => r.json()),
+            fetch(withSrc('/api/fear-greed')).then(r => r.json()).catch(() => ({})),
         ]);
         _lastTopRows = top || [];
         renderTop(top);
         renderTrending(trending);
         renderSectors(sectors);
         renderMeta(health);
+        renderFearGreed(fg);
 
         // Fetch sparklines for top tickers (only top has the spark column),
         // but fetch prices for BOTH top + trending so the new Price/Day
@@ -1118,9 +1515,10 @@ async function refresh() {
         const trendTickers = (trending || []).map(r => r.ticker);
         const priceTickers = Array.from(new Set([...topTickers, ...trendTickers]));
         if (priceTickers.length) {
+            const sparkHours = SPARK_WINDOW_H[PRICE_TIMESCALE];
             const [bulk, prices, sentiment] = await Promise.all([
                 topTickers.length
-                    ? fetch(withSrc(`/api/history-bulk?tickers=${topTickers.join(',')}&hours=48`)).then(r => r.json())
+                    ? fetch(withSrc(`/api/history-bulk?tickers=${topTickers.join(',')}&hours=${sparkHours}`)).then(r => r.json())
                     : Promise.resolve({}),
                 fetch(`/api/prices?tickers=${priceTickers.join(',')}`).then(r => r.json()),
                 topTickers.length
@@ -1129,6 +1527,10 @@ async function refresh() {
             ]);
             _lastPrices = prices || {};
             _lastSentiment = sentiment || {};
+            _lastBulk = bulk || {};
+            // Re-render top now that bulk is populated — the mentions-Δ column
+            // for Hour/Week comparisons reads from _lastBulk.
+            if (PRICE_TIMESCALE !== 'day') renderTop(_lastTopRows);
             fillSparks(bulk);
             fillPrices(prices);
             fillSentiment(sentiment);
@@ -1141,27 +1543,95 @@ function renderMeta(h) {
     document.getElementById('status-next').textContent = fmtNext(h.latest_fetched_utc);
 }
 
+function renderFearGreed(fg) {
+    const band  = document.getElementById('fg-band');
+    if (!fg || fg.value == null) { band.style.display = 'none'; return; }
+    band.style.display = '';
+    const v = Math.max(0, Math.min(100, fg.value));
+    document.getElementById('fg-marker').style.left = v + '%';
+    document.getElementById('fg-value').textContent = v;
+    const cls = document.getElementById('fg-class');
+    cls.textContent = (fg.label || '').toUpperCase();
+    // Map any CNN/alt-me label to one of 5 buckets for color.
+    const lower = (fg.label || '').toLowerCase();
+    let bucket = 'neutral';
+    if (v <= 24)      bucket = 'extreme-fear';
+    else if (v <= 44) bucket = 'fear';
+    else if (v <= 55) bucket = 'neutral';
+    else if (v <= 75) bucket = 'greed';
+    else              bucket = 'extreme-greed';
+    cls.className = 'fg-class bucket-' + bucket;
+
+    // Driver components (Put/Call + VIX from CNN). Crypto has none.
+    const sep = document.getElementById('fg-drivers-sep');
+    const driversEl = document.getElementById('fg-drivers');
+    const comps = fg.components || [];
+    if (!comps.length) {
+        sep.style.display = 'none';
+        driversEl.innerHTML = '';
+        return;
+    }
+    sep.style.display = '';
+    driversEl.innerHTML = comps.map(c => {
+        const cv = Math.max(0, Math.min(100, c.value));
+        let b = 'neutral';
+        if (cv <= 24)      b = 'extreme-fear';
+        else if (cv <= 44) b = 'fear';
+        else if (cv <= 55) b = 'neutral';
+        else if (cv <= 75) b = 'greed';
+        else               b = 'extreme-greed';
+        const mark = cv >= 56 ? '▲' : cv <= 44 ? '▼' : '—';
+        return `<span class="fg-comp bucket-${b}" title="${c.rating || ''}">
+            <span class="fg-comp-name">${c.label}</span>
+            <span class="fg-comp-mark">${mark}</span>
+            <span class="fg-comp-val">${cv}</span>
+        </span>`;
+    }).join(' &nbsp; ');
+}
+
+const TOP_VISIBLE = 10;        // rows shown before "show more"
+let _topExpanded = false;
+
+function topRowHtml(r) {
+    const ratio = mentionsChangeFor(r);
+    return `<tr class="row" onclick="openModal(${JSON.stringify(r.ticker)})">
+        <td class="num rank">${String(r.rank).padStart(2, '0')}</td>
+        <td class="ticker">${r.ticker}${fmtHotChip(r)}</td>
+        <td class="name">${esc(r.name || '')}</td>
+        <td class="num mentions">${r.mentions.toLocaleString()}</td>
+        <td class="num">${fmtDelta(ratio)}</td>
+        <td><canvas class="spark" data-ticker="${r.ticker}"></canvas></td>
+        <td class="num" data-price="${r.ticker}"><span class="flat">…</span></td>
+        <td class="num" data-day="${r.ticker}"><span class="flat">…</span></td>
+        <td data-senti="${r.ticker}"><span class="flat">…</span></td>
+    </tr>`;
+}
+
 function renderTop(rows) {
     const body = document.getElementById('top-body');
     if (!rows || !rows.length) {
-        body.innerHTML = '<tr><td colspan="8" class="empty">No data yet</td></tr>';
+        body.innerHTML = '<tr><td colspan="9" class="empty">No data yet</td></tr>';
         return;
     }
-    body.innerHTML = rows.map(r => {
-        const ratio = r.mentions_24h_ago && r.mentions_24h_ago > 0
-            ? r.mentions / r.mentions_24h_ago : null;
-        return `<tr class="row" onclick="openModal(${JSON.stringify(r.ticker)})">
-            <td class="num rank">${String(r.rank).padStart(2, '0')}</td>
-            <td class="ticker">${r.ticker}${fmtHotChip(r)}</td>
-            <td class="name">${esc(r.name || '')}</td>
-            <td class="num mentions">${r.mentions.toLocaleString()}</td>
-            <td class="num">${fmtDelta(ratio)}</td>
-            <td><canvas class="spark" data-ticker="${r.ticker}"></canvas></td>
-            <td class="num" data-price="${r.ticker}"><span class="flat">…</span></td>
-            <td class="num" data-day="${r.ticker}"><span class="flat">…</span></td>
-            <td data-senti="${r.ticker}"><span class="flat">…</span></td>
-        </tr>`;
-    }).join('');
+    const visible = _topExpanded ? rows : rows.slice(0, TOP_VISIBLE);
+    let html = visible.map(topRowHtml).join('');
+    if (rows.length > TOP_VISIBLE) {
+        const label = _topExpanded
+            ? 'Show less'
+            : `Show ${rows.length - TOP_VISIBLE} more`;
+        html += `<tr class="more-row"><td colspan="9" onclick="toggleTopMore()">${label} <span class="more-caret">${_topExpanded ? '▲' : '▼'}</span></td></tr>`;
+    }
+    body.innerHTML = html;
+}
+
+// Re-render with the full list and re-populate the cached spark/price/
+// sentiment cells for the rows that were just revealed.
+function toggleTopMore() {
+    _topExpanded = !_topExpanded;
+    renderTop(_lastTopRows);
+    fillSparks(_lastBulk);
+    fillPrices(_lastPrices);
+    fillSentiment(_lastSentiment);
 }
 
 function renderTrending(rows) {
@@ -1202,10 +1672,11 @@ function renderSectors(rows) {
         const heat = max > 0 ? r.mentions / max : 0;
         const list = r.tickers_list || [];
         const tickerHtml = list.map(t =>
-            `<span class="sec-tk" onclick="openModal('${t}')">${t}</span>`
+            `<span class="sec-tk" onclick="event.stopPropagation();openModal('${t}')">${t}</span>`
         ).join('');
         return `
-        <div class="sector-cell" style="--heat: ${heat.toFixed(3)};">
+        <div class="sector-cell" style="--heat: ${heat.toFixed(3)};"
+             onclick="toggleSectorOpen(this)">
             <div class="sec-label">${esc(r.sector)}</div>
             <div class="sec-val">${r.mentions.toLocaleString()}</div>
             <div class="sec-tail">${r.tickers} ticker${r.tickers === 1 ? '' : 's'}</div>
@@ -1216,6 +1687,15 @@ function renderSectors(rows) {
               </div>` : ''}
         </div>`;
     }).join('');
+}
+
+// Tap a sector cell to expose its ticker list (touch has no real hover).
+// On desktop the CSS :hover still works; this just adds tap behavior.
+function toggleSectorOpen(cell) {
+    const wasOpen = cell.classList.contains('open');
+    document.querySelectorAll('.sector-cell.open').forEach(c =>
+        c.classList.remove('open'));
+    if (!wasOpen) cell.classList.add('open');
 }
 
 function fillSparks(bulk) {
@@ -1232,7 +1712,7 @@ function fillPrices(prices) {
             el.innerHTML = fmtPrice(info.price);
         });
         document.querySelectorAll(`[data-day="${t}"]`).forEach(el => {
-            el.innerHTML = fmtPct(info.change_pct);
+            el.innerHTML = fmtPct(priceChangeFor(info));
         });
     });
 }
@@ -1284,12 +1764,13 @@ async function openModal(ticker) {
         }
     }
     renderModalLinks(ticker);
-    const [history, news, channels] = await Promise.all([
+    const [history, priceHist, news, channels] = await Promise.all([
         fetch(withSrc(`/api/history/${encodeURIComponent(ticker)}?hours=72`)).then(r => r.json()),
+        fetch(`/api/price-history/${encodeURIComponent(ticker)}?hours=72`).then(r => r.json()),
         fetch(`/api/news/${encodeURIComponent(ticker)}?limit=10`).then(r => r.json()),
         fetch(`/api/channels/${encodeURIComponent(ticker)}`).then(r => r.json()),
     ]);
-    drawHistory(history);
+    drawHistory(history, priceHist);
     renderModalNews(news);
     renderModalChannels(channels);
 }
@@ -1358,72 +1839,137 @@ function clearChart() {
     c.getContext('2d').clearRect(0, 0, c.width, c.height);
 }
 
-function drawHistory(rows) {
+function drawHistory(rows, priceHist) {
     const c = document.getElementById('modal-chart');
     const ctx = c.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const W = c.clientWidth || 600;
-    const H = 220;
+    const H = 240;
     c.width = W * dpr; c.height = H * dpr;
     c.style.height = H + 'px';
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
-    if (!rows || rows.length < 2) {
+    const hasMentions = rows && rows.length >= 2;
+    const hasPrice    = priceHist && priceHist.length >= 2;
+    if (!hasMentions && !hasPrice) {
         ctx.fillStyle = 'oklch(0.40 0.010 70)';
         ctx.font = '11px ui-monospace, monospace';
         ctx.textAlign = 'center';
         ctx.fillText('History builds over the next few days', W / 2, H / 2);
         return;
     }
-    const pad = { l: 44, r: 16, t: 18, b: 30 };
+    const pad = { l: 46, r: 52, t: 22, b: 32 };
     const cw = W - pad.l - pad.r;
     const ch = H - pad.t - pad.b;
-    const xs = rows.map(r => r.fetched_utc);
-    const ys = rows.map(r => r.mentions);
-    const xmin = Math.min(...xs), xmax = Math.max(...xs);
-    const ymax = Math.max(...ys);
-    const xS = v => pad.l + ((v - xmin) / Math.max(1, xmax - xmin)) * cw;
-    const yS = v => pad.t + (1 - v / Math.max(1, ymax)) * ch;
 
+    // Shared time axis spans both series.
+    const allTs = [
+        ...(hasMentions ? rows.map(r => r.fetched_utc) : []),
+        ...(hasPrice    ? priceHist.map(r => r.ts)    : []),
+    ];
+    const xmin = Math.min(...allTs);
+    const xmax = Math.max(...allTs);
+    const xS = v => pad.l + ((v - xmin) / Math.max(1, xmax - xmin)) * cw;
+
+    // Mentions y-scale (left axis, anchored at 0).
+    const mYmax = hasMentions ? Math.max(...rows.map(r => r.mentions), 1) : 1;
+    const mY   = v => pad.t + (1 - v / mYmax) * ch;
+
+    // Price y-scale (right axis, fitted to its own range).
+    let pMin = 0, pMax = 1, pY = v => pad.t + ch;
+    if (hasPrice) {
+        const ps = priceHist.map(r => r.price);
+        const lo = Math.min(...ps), hi = Math.max(...ps);
+        const span = Math.max(hi - lo, 1e-6);
+        // Add 8% headroom so the line doesn't kiss the chart edges.
+        pMin = lo - span * 0.08;
+        pMax = hi + span * 0.08;
+        pY = v => pad.t + (1 - (v - pMin) / (pMax - pMin)) * ch;
+    }
+
+    // ── Gridlines + left (mentions) y-labels ──────────────────────────
     ctx.strokeStyle = 'oklch(0.205 0.006 70)';
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
         const y = pad.t + (ch * i / 4);
         ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
     }
-    ctx.fillStyle = 'oklch(0.40 0.010 70)';
     ctx.font = '10px ui-monospace, monospace';
-    ctx.textAlign = 'right';
-    for (let i = 0; i <= 4; i++) {
-        const v = Math.round(ymax * (1 - i / 4));
-        ctx.fillText(v, pad.l - 8, pad.t + (ch * i / 4) + 3);
+    if (hasMentions) {
+        ctx.fillStyle = COLOR_AMBER;
+        ctx.textAlign = 'right';
+        for (let i = 0; i <= 4; i++) {
+            const v = Math.round(mYmax * (1 - i / 4));
+            ctx.fillText(v, pad.l - 8, pad.t + (ch * i / 4) + 3);
+        }
     }
+    if (hasPrice) {
+        ctx.fillStyle = 'oklch(0.55 0.012 70)';
+        ctx.textAlign = 'left';
+        for (let i = 0; i <= 4; i++) {
+            const v = pMax - (pMax - pMin) * (i / 4);
+            ctx.fillText('$' + v.toFixed(v >= 100 ? 0 : 2),
+                         W - pad.r + 6, pad.t + (ch * i / 4) + 3);
+        }
+    }
+
+    // X-axis time labels.
+    ctx.fillStyle = 'oklch(0.40 0.010 70)';
     ctx.textAlign = 'left';
     ctx.fillText(fmtShortDate(xmin), pad.l, H - 10);
     ctx.textAlign = 'right';
     ctx.fillText(fmtShortDate(xmax), W - pad.r, H - 10);
 
-    // Area fill
-    ctx.beginPath();
-    rows.forEach((r, i) => {
-        const x = xS(r.fetched_utc), y = yS(r.mentions);
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.lineTo(xS(xmax), pad.t + ch);
-    ctx.lineTo(xS(xmin), pad.t + ch);
-    ctx.closePath();
-    ctx.fillStyle = 'oklch(0.78 0.135 75 / 0.08)';
-    ctx.fill();
+    // ── Mentions: area + line (drawn first, behind price) ─────────────
+    if (hasMentions) {
+        ctx.beginPath();
+        rows.forEach((r, i) => {
+            const x = xS(r.fetched_utc), y = mY(r.mentions);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.lineTo(xS(rows[rows.length - 1].fetched_utc), pad.t + ch);
+        ctx.lineTo(xS(rows[0].fetched_utc),               pad.t + ch);
+        ctx.closePath();
+        ctx.fillStyle = 'oklch(0.78 0.135 75 / 0.08)';
+        ctx.fill();
 
-    // Line
-    ctx.strokeStyle = COLOR_AMBER;
-    ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    rows.forEach((r, i) => {
-        const x = xS(r.fetched_utc), y = yS(r.mentions);
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
+        ctx.strokeStyle = COLOR_AMBER;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        rows.forEach((r, i) => {
+            const x = xS(r.fetched_utc), y = mY(r.mentions);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+    }
+
+    // ── Price: thin dim line, on top ──────────────────────────────────
+    if (hasPrice) {
+        ctx.strokeStyle = 'oklch(0.65 0.014 70)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        priceHist.forEach((r, i) => {
+            const x = xS(r.ts), y = pY(r.price);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+    }
+
+    // ── Legend (top-left, terse) ──────────────────────────────────────
+    ctx.font = '9px ui-monospace, monospace';
+    ctx.textAlign = 'left';
+    let lx = pad.l;
+    if (hasMentions) {
+        ctx.fillStyle = COLOR_AMBER;
+        ctx.fillRect(lx, pad.t - 14, 12, 2);
+        ctx.fillText('MENTIONS', lx + 16, pad.t - 9);
+        lx += 80;
+    }
+    if (hasPrice) {
+        ctx.fillStyle = 'oklch(0.65 0.014 70)';
+        ctx.fillRect(lx, pad.t - 14, 12, 2);
+        ctx.fillText('PRICE', lx + 16, pad.t - 9);
+    }
 }
 function fmtShortDate(ts) {
     const d = new Date(ts * 1000);
@@ -1520,7 +2066,7 @@ document.getElementById('search-input').addEventListener('input', e => {
 });
 
 (async () => {
-    await loadChannels();
+    applyTimescaleHeaders();
     refresh();
     setInterval(refresh, POLL_MS);
 })();

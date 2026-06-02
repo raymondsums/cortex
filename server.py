@@ -51,15 +51,13 @@ USER_AGENT = os.environ.get("USER_AGENT", "hivemind/0.1 (personal use)")
 # time — never used as a fetch target.
 ALL_SOURCE = "all"
 SOURCES = [
-    {"key": ALL_SOURCE,       "label": "All channels",     "short": "ALL"},
     {"key": "wallstreetbets", "label": "r/wallstreetbets", "short": "WSB"},
-    {"key": "stocks",         "label": "r/stocks",         "short": "STOCKS"},
-    {"key": "options",        "label": "r/options",        "short": "OPTIONS"},
-    {"key": "cryptocurrency", "label": "r/cryptocurrency", "short": "CRYPTO"},
 ]
 REAL_SOURCES = [s for s in SOURCES if s["key"] != ALL_SOURCE]
 SOURCE_KEYS = {s["key"] for s in SOURCES}
+# Single channel — r/wallstreetbets only. No channel selector in the UI.
 DEFAULT_SOURCE = "wallstreetbets"
+FETCH_DEFAULT = "wallstreetbets"
 
 
 # ── DB ───────────────────────────────────────────────────────────────
@@ -185,7 +183,7 @@ def fetch_apewisdom_page(source: str, page: int = 1) -> dict:
     return r.json()
 
 
-def fetch_snapshot(source: str = DEFAULT_SOURCE) -> dict:
+def fetch_snapshot(source: str = FETCH_DEFAULT) -> dict:
     """Pull the top N pages for one source and persist as a single snapshot."""
     source = _resolve_source(source)
     fetched_utc = int(time.time())
@@ -249,11 +247,16 @@ def latest_fetched_utc(source: str = DEFAULT_SOURCE) -> int | None:
 # When source = ALL, we aggregate across each real source's *own* latest
 # snapshot (which may have different fetched_utc values), summing mentions
 # per ticker. Wrapping with a CTE keeps the SQL readable.
+_REAL_SOURCE_IN = ",".join("'%s'" % s["key"] for s in REAL_SOURCES)
+# Scope cross-source aggregates to the currently-monitored channels, so data
+# from a retired channel (e.g. an old wallstreetbets snapshot) can't leak in.
 _LATEST_PER_SOURCE_CTE = """
 WITH latest_per_source AS (
-    SELECT source, MAX(fetched_utc) AS fu FROM snapshots GROUP BY source
+    SELECT source, MAX(fetched_utc) AS fu FROM snapshots
+    WHERE source IN (%s)
+    GROUP BY source
 )
-"""
+""" % _REAL_SOURCE_IN
 
 
 def top_tickers(limit: int = 20, source: str = DEFAULT_SOURCE) -> list[dict]:
@@ -906,8 +909,8 @@ def cli() -> None:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_f = sub.add_parser("fetch", help="Pull one snapshot from ApeWisdom now")
-    p_f.add_argument("--source", default=DEFAULT_SOURCE,
-                     choices=[s["key"] for s in SOURCES])
+    p_f.add_argument("--source", default=FETCH_DEFAULT,
+                     choices=[s["key"] for s in REAL_SOURCES])
     p_f.add_argument("--all-sources", action="store_true",
                      help="Fetch every channel in one tick")
 
