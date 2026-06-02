@@ -312,6 +312,10 @@ body {
     display: flex; align-items: baseline; gap: 12px;
     padding: 18px 24px 10px;
     flex-wrap: wrap;             /* wrap the timescale strip on narrow widths */
+    /* Fixed band height so headers with a timescale strip (02) and ones with
+       plain meta text (03) end at the same baseline — keeps the column-title
+       rows of side-by-side tables aligned. */
+    min-height: 48px;
 }
 .section-head .rule { min-width: 12px; }
 .timescale-strip { flex-shrink: 0; }
