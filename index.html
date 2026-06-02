@@ -1061,6 +1061,12 @@ canvas { display: block; max-width: 100%; }
     #trending-table th:nth-child(7), #trending-table td:nth-child(7) { /* Day */
         display: none;
     }
+    /* The desktop flex column (Name) is hidden on mobile, leaving only
+       fixed-width columns — so the table clumped to the left instead of
+       filling the screen. Let the Ticker column flex to absorb the slack:
+       the table fills full width and the numeric columns sit flush right. */
+    #top-table th:nth-child(2) { width: auto; }       /* Ticker */
+    #trending-table th:nth-child(1) { width: auto; }  /* Ticker */
     /* Re-apply right padding to whichever cell is *visually* last after the
        hides above (DOM-order :last-child points at a hidden column). */
     #top-table th:nth-child(8), #top-table td:nth-child(8),        /* Day */
