@@ -532,6 +532,7 @@ def sector_buzz(source: str = DEFAULT_SOURCE) -> list[dict]:
                 _LATEST_PER_SOURCE_CTE +
                 """SELECT COALESCE(sec.sector, 'Unknown') AS sector,
                           SUM(s.mentions)                AS mentions,
+                          SUM(s.mentions_24h_ago)        AS mentions_24h_ago,
                           COUNT(DISTINCT s.ticker)       AS tickers,
                           GROUP_CONCAT(DISTINCT s.ticker) AS ticker_list
                    FROM snapshots s
@@ -550,6 +551,7 @@ def sector_buzz(source: str = DEFAULT_SOURCE) -> list[dict]:
                 """SELECT
                        COALESCE(sec.sector, 'Unknown') AS sector,
                        SUM(s.mentions)                AS mentions,
+                       SUM(s.mentions_24h_ago)        AS mentions_24h_ago,
                        COUNT(*)                       AS tickers,
                        GROUP_CONCAT(s.ticker)         AS ticker_list
                    FROM snapshots s

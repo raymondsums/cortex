@@ -445,7 +445,12 @@ body {
     letter-spacing: 0.08em;
     text-transform: uppercase;
     align-self: end;
+    white-space: nowrap;
 }
+.sec-delta { font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.sec-delta.up { color: var(--up); }
+.sec-delta.down { color: var(--down); }
+.sec-delta-label { color: var(--ink-4); }
 .sector-cell .sec-label {
     /* Section label also bumps slightly on hot cells (less aggressive
        since ink-3 already has decent contrast). */
@@ -1200,7 +1205,7 @@ footer {
         <span class="label">01</span>
         <span class="label">SECTOR BUZZ</span>
         <span class="rule"></span>
-        <span class="meta"></span>
+        <span class="meta">Δ mentions vs 24h ago</span>
     </div>
     <div class="sector-wrap">
         <div class="sector-grid" id="sector-grid">
@@ -1741,12 +1746,23 @@ function renderSectors(rows) {
         const tickerHtml = list.map(t =>
             `<span class="sec-tk" onclick="event.stopPropagation();openModal('${t}')">${t}</span>`
         ).join('');
+        // 24h mention change for the sector (absolute). Skip if no prior data.
+        let deltaHtml = '';
+        const prev = r.mentions_24h_ago;
+        if (prev != null && prev > 0) {
+            const d = r.mentions - prev;
+            if (d !== 0) {
+                const cls = d > 0 ? 'up' : 'down';
+                const sign = d > 0 ? '+' : '−';
+                deltaHtml = ` · <span class="sec-delta ${cls}">${sign}${Math.abs(d).toLocaleString()}</span>`;
+            }
+        }
         return `
         <div class="sector-cell" style="--heat: ${heat.toFixed(3)};"
              onclick="toggleSectorOpen(this)">
             <div class="sec-label">${esc(r.sector)}</div>
             <div class="sec-val">${r.mentions.toLocaleString()}</div>
-            <div class="sec-tail">${r.tickers} ticker${r.tickers === 1 ? '' : 's'}</div>
+            <div class="sec-tail">${r.tickers} ticker${r.tickers === 1 ? '' : 's'}${deltaHtml}</div>
             ${list.length ? `
               <div class="sec-tickers">
                 <div class="sec-tickers-head">${esc(r.sector)} · tickers</div>
